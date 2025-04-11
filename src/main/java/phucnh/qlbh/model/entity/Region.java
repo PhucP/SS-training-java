@@ -1,5 +1,7 @@
 package phucnh.qlbh.model.entity;
 
+import java.util.Comparator;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -17,7 +19,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Table(name = "regions")
-public class Region {
+public class Region implements Comparator<Region> {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,4 +27,10 @@ public class Region {
     
     @Column(name = "region_name", nullable = false)
     private String regionName;
+
+    @Override
+    public int compare(Region region1, Region region2) {
+        if(region1.getRegionName() == region2.getRegionName()) return 0;
+        else return 1;
+    }
 }

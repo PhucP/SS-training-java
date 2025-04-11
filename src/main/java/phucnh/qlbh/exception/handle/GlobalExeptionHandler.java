@@ -10,8 +10,8 @@ import org.springframework.web.context.request.WebRequest;
 
 import io.swagger.v3.oas.annotations.Hidden;
 import phucnh.qlbh.exception.exceptions.NotFoundException;
+import phucnh.qlbh.exception.exceptions.ParseDateException;
 
-@Hidden
 @RestControllerAdvice
 public class GlobalExeptionHandler {
     @ExceptionHandler(NotFoundException.class)
@@ -24,6 +24,18 @@ public class GlobalExeptionHandler {
         );
 
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ParseDateException.class)
+    public ResponseEntity<ErrorResponse> handleParseDateException(RuntimeException exception, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                new Date(),
+                exception.getMessage(),
+                request.getDescription(false)
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 }
 

@@ -1,5 +1,7 @@
 package phucnh.qlbh.model.dto;
 
-public class UpdateRegionDTO extends CreateRegionDTO {
+import lombok.Data;
 
+@Data
+public class UpdateRegionDTO extends CreateRegionDTO {
 }
