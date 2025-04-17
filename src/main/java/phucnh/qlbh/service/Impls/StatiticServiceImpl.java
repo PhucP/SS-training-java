@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import phucnh.qlbh.model.response.PagedResponse;
 import phucnh.qlbh.model.response.RevenueByEmployeePerMonth;
 import phucnh.qlbh.model.response.RevenueProduct;
 import phucnh.qlbh.model.response.TopCustomer;
@@ -30,4 +31,10 @@ public class StatiticServiceImpl implements StatiticService {
         return statiticRepository.getRevenueProduct();
     }
     
+    @Override
+    public PagedResponse<RevenueProduct> getRevenueProductPaginated(int page, int size) {
+        List<RevenueProduct> content = statiticRepository.getRevenueProductPaginated(page, size);
+        long totalElements = statiticRepository.getTotalRevenueProductCount();
+        return PagedResponse.of(content, page, size, totalElements);
+    }
 }

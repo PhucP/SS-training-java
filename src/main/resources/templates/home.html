@@ -1,0 +1,157 @@
+<!-- Start Generation Here -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thống Kê</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-5">
+        <h1 class="text-3xl font-bold text-center mb-5">Thống Kê</h1>
+        <div class="flex justify-center space-x-4 mb-5">
+            <input type="number" id="yearInput" placeholder="Nhập Năm" class="border px-4 py-2 rounded" style="display: none;">
+            <button id="submitYear" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" style="display: none;">Submit</button>
+            <button id="revenueByEmployee" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Doanh Thu Theo Nhân Viên Theo Tháng</button>
+            <button id="topCustomer" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Khách Hàng Hàng Đầu</button>
+            <button id="productRevenue" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Doanh Thu Sản Phẩm</button>
+        </div>
+        <div id="result" class="mt-5"></div>
+        <div id="pagination" class="mt-4 flex justify-center items-center space-x-4" style="display: none;">
+            <button id="prevPage" class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 disabled:opacity-50">Trang Trước</button>
+            <div class="flex items-center space-x-2">
+                <span>Trang</span>
+                <input type="number" id="pageInput" class="border px-2 py-1 rounded w-16 text-center" value="1" min="1">
+                <span>của <span id="totalPages">1</span></span>
+            </div>
+            <button id="nextPage" class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 disabled:opacity-50">Trang Tiếp</button>
+            <div class="flex items-center space-x-2 ml-4">
+                <span>Hiển thị</span>
+                <select id="pageSizeSelect" class="border px-2 py-1 rounded">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+                <span>mục trên trang</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Variables for pagination
+            let currentPage = 0;
+            let pageSize = 10;
+            let totalPages = 0;
+            
+            // Function to load product revenue with pagination
+            function loadProductRevenue(page, size) {
+                $.get(`/statitic/get-product-revenue/paginated?page=${page}&size=${size}`, function(response) {
+                    let data = response.content;
+                    currentPage = response.pageNumber;
+                    totalPages = response.totalPages;
+                    
+                    // Update pagination UI
+                    $('#totalPages').text(totalPages);
+                    $('#pageInput').val(currentPage + 1); // Display 1-based page numbers
+                    $('#prevPage').prop('disabled', currentPage === 0);
+                    $('#nextPage').prop('disabled', response.last);
+                    
+                    // Display the data
+                    let table = '<table class="min-w-full bg-white"><thead><tr><th class="py-2">Product ID</th><th class="py-2">Product Name</th><th class="py-2">Total Revenue</th><th class="py-2">In Stock</th></tr></thead><tbody>';
+                    data.forEach(item => {
+                        table += `<tr><td class="border px-4 py-2">${item.productId}</td><td class="border px-4 py-2">${item.productName}</td><td class="border px-4 py-2">${item.totalRevenue}</td><td class="border px-4 py-2">${item.instock}</td></tr>`;
+                    });
+                    table += '</tbody></table>';
+                    
+                    // Add pagination info
+                    let paginationInfo = `<div class="mt-2 text-center text-gray-600">Hiển thị ${data.length} trong tổng số ${response.totalElements} mục</div>`;
+                    
+                    $('#result').html(table + paginationInfo);
+                    $('#pagination').show();
+                });
+            }
+            
+            $('#revenueByEmployee').click(function() {
+                $('#result').empty();
+                $('#pagination').hide();
+                $('#yearInput, #submitYear').show().focus();
+                $('#submitYear').off('click').on('click', function() {
+                    const year = $('#yearInput').val();
+                    if (!year) return;
+                    $.post('/statitic/revenue-by-employee-per-month', { year: year }, function(data) {
+                        let table = '<table class="min-w-full bg-white"><thead><tr><th class="py-2">Employee ID</th><th class="py-2">Full Name</th><th class="py-2">Total Revenue</th><th class="py-2">Month</th></tr></thead><tbody>';
+                        data.forEach(item => {
+                            table += `<tr><td class="border px-4 py-2">${item.employeeId}</td><td class="border px-4 py-2">${item.fullName}</td><td class="border px-4 py-2">${item.totalRevenue}</td><td class="border px-4 py-2">${item.month}</td></tr>`;
+                        });
+                        table += '</tbody></table>';
+                        $('#result').html(table);
+                    });
+                });
+            });
+
+            $('#topCustomer').click(function() {
+                $('#result').empty();
+                $('#pagination').hide();
+                $('#yearInput, #submitYear').show().focus();
+                $('#submitYear').off('click').on('click', function() {
+                    const year = $('#yearInput').val();
+                    if (!year) return;
+                    $.post('/statitic/get-top-customer', { year: year }, function(data) {
+                        let table = '<table class="min-w-full bg-white"><thead><tr><th class="py-2">Customer ID</th><th class="py-2">Name</th><th class="py-2">Address</th><th class="py-2">Credit Limit</th><th class="py-2">Total Revenue</th></tr></thead><tbody>';
+                        data.forEach(item => {
+                            table += `<tr><td class="border px-4 py-2">${item.customerId}</td><td class="border px-4 py-2">${item.name}</td><td class="border px-4 py-2">${item.address}</td><td class="border px-4 py-2">${item.creditLimit}</td><td class="border px-4 py-2">${item.totalRevenue}</td></tr>`;
+                        });
+                        table += '</tbody></table>';
+                        $('#result').html(table);
+                    });
+                });
+            });
+
+            $('#productRevenue').click(function() {
+                $('#result').empty();
+                $('#yearInput, #submitYear').hide();
+                
+                // Reset pagination to first page
+                currentPage = 0;
+                pageSize = parseInt($('#pageSizeSelect').val());
+                
+                // Load product revenue with pagination
+                loadProductRevenue(currentPage, pageSize);
+            });
+            
+            // Pagination controls
+            $('#prevPage').click(function() {
+                if (currentPage > 0) {
+                    loadProductRevenue(currentPage - 1, pageSize);
+                }
+            });
+            
+            $('#nextPage').click(function() {
+                if (currentPage < totalPages - 1) {
+                    loadProductRevenue(currentPage + 1, pageSize);
+                }
+            });
+            
+            $('#pageInput').on('change', function() {
+                let inputPage = parseInt($(this).val()) - 1; // Convert to 0-based
+                if (!isNaN(inputPage) && inputPage >= 0 && inputPage < totalPages) {
+                    loadProductRevenue(inputPage, pageSize);
+                } else {
+                    $(this).val(currentPage + 1); // Reset to current page if invalid
+                }
+            });
+            
+            $('#pageSizeSelect').on('change', function() {
+                pageSize = parseInt($(this).val());
+                currentPage = 0; // Reset to first page when changing page size
+                loadProductRevenue(currentPage, pageSize);
+            });
+        });
+    </script>
+</body>
+</html>
+<!-- End Generation Here -->

@@ -35,7 +35,6 @@ public class StatiticRepository {
                 CONCAT(CONCAT(EMPLOYEES.FIRST_NAME, ' '), EMPLOYEES.LAST_NAME) 
             ORDER BY 
                 MONTH, TOTAL_REVENUE DESC
-            FETCH NEXT 10 ROWS WITH TIES
             """;
 
         Query query = entityManager.createNativeQuery(sql);
@@ -70,7 +69,6 @@ public class StatiticRepository {
                 CUSTOMERS.CREDIT_LIMIT
             ORDER BY
                 TOTAL_REVENUE DESC
-                FETCH NEXT 10 ROWS WITH TIES
                 """;
         
         Query query = entityManager.createNativeQuery(sql);
@@ -124,5 +122,57 @@ public class StatiticRepository {
                 .instock(((Number)result[3]).longValue())
                 .build()
         ).toList();
+    }
+
+    public List<RevenueProduct> getRevenueProductPaginated(int page, int size) {
+        String sql = """
+                WITH SHORT_INVENTORY AS (
+                    SELECT PRODUCT_ID, SUM(QUANTITY) AS IN_STOCK
+                    FROM INVENTORIES
+                    GROUP BY PRODUCT_ID
+                ),
+                PRODUCT_ITEM AS (
+                    SELECT PRODUCT_ID, SUM(QUANTITY) TOTAL_QUANTITY
+                    FROM ORDER_ITEMS
+                    GROUP BY PRODUCT_ID
+                )
+                SELECT
+                    PRODUCTS.PRODUCT_ID,
+                    PRODUCTS.PRODUCT_NAME,
+                    NVL(PRODUCT_ITEM.TOTAL_QUANTITY * PRODUCTS.LIST_PRICE, 0) TOTAL_REVENUE,
+                    NVL(SHORT_INVENTORY.IN_STOCK, 0) IN_STOCK
+                FROM
+                    SHORT_INVENTORY, PRODUCT_ITEM, PRODUCTS
+                WHERE
+                    PRODUCT_ITEM.PRODUCT_ID(+) = PRODUCTS.PRODUCT_ID
+                    AND PRODUCTS.PRODUCT_ID = SHORT_INVENTORY.PRODUCT_ID(+)
+                ORDER BY
+                    TOTAL_REVENUE DESC,
+                    SHORT_INVENTORY.IN_STOCK
+                OFFSET :offset ROWS
+                FETCH NEXT :size ROWS ONLY
+                """;
+
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter("offset", page * size);
+        query.setParameter("size", size);
+        List<Object[]> results = query.getResultList();
+
+        return results.stream().map(result -> RevenueProduct.builder()
+                .productId(((Number)result[0]).longValue())
+                .productName((String)result[1])
+                .totalRevenue(((Number)result[2]).doubleValue())
+                .instock(((Number)result[3]).longValue())
+                .build()
+        ).toList();
+    }
+
+    public long getTotalRevenueProductCount() {
+        String sql = """
+                SELECT COUNT(*) FROM PRODUCTS
+                """;
+        
+        Query query = entityManager.createNativeQuery(sql);
+        return ((Number) query.getSingleResult()).longValue();
     }
 }
